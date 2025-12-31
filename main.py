@@ -16,7 +16,7 @@ st.dataframe(df.head())
 # -----------------------------
 # 2. Define columns
 # -----------------------------
-dmr_col = "location"             # DMR identifier
+dmr_col = "DMR_ID"             # DMR identifier
 feature_col = "pfas_exposure"  # PFAS column
 target_col = "meth.diff"       # Methylation difference column
 
@@ -26,15 +26,19 @@ for col in [dmr_col, feature_col, target_col]:
         st.stop()
 
 # -----------------------------
-# 3. Select a DMR
+# 3. Filter DMRs with enough samples
 # -----------------------------
-st.subheader("Select a DMR")
-dmr_selected = st.selectbox("Choose DMR", df[dmr_col].unique())
-df_dmr = df[df[dmr_col] == dmr_selected][[feature_col, target_col]].dropna()
+dmr_counts = df.groupby(dmr_col).size()
+valid_dmrs = dmr_counts[dmr_counts >= 2].index.tolist()
 
-if df_dmr.shape[0] < 2:
-    st.warning("Not enough data to train a model for this DMR.")
+if not valid_dmrs:
+    st.error("No DMRs have enough data (≥2 samples) to train a model.")
     st.stop()
+
+st.subheader("Select a DMR")
+dmr_selected = st.selectbox("Choose DMR", valid_dmrs)
+
+df_dmr = df[df[dmr_col] == dmr_selected][[feature_col, target_col]].dropna()
 
 # -----------------------------
 # 4. Predictive model (PFAS → methylation)
