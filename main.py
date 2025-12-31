@@ -16,9 +16,9 @@ st.dataframe(df.head())
 # -----------------------------
 # 2. Define columns
 # -----------------------------
-dmr_col = "DMR_ID"             # DMR identifier
-feature_col = "pfas_exposure"  # PFAS column
-target_col = "meth.diff"       # Methylation difference column
+dmr_col = "DMR_ID"
+feature_col = "pfas_exposure"
+target_col = "meth.diff"
 
 for col in [dmr_col, feature_col, target_col]:
     if col not in df.columns:
@@ -37,46 +37,50 @@ if not valid_dmrs:
 
 st.subheader("Select a DMR")
 dmr_selected = st.selectbox("Choose DMR", valid_dmrs)
-
 df_dmr = df[df[dmr_col] == dmr_selected][[feature_col, target_col]].dropna()
 
 # -----------------------------
-# 4. Predictive model (PFAS → methylation)
+# 4. Predictive model section
 # -----------------------------
-st.subheader(f"Predictive model for DMR: {dmr_selected}")
+st.header("Predictive Model")
+st.write("""
+This section predicts methylation differences for the selected DMR based purely on PFAS exposure.
+It does **not** make causal assumptions.
+""")
+
 X = df_dmr[[feature_col]]
 y = df_dmr[target_col]
 
-model = LinearRegression()
-model.fit(X, y)
+predictive_model = LinearRegression()
+predictive_model.fit(X, y)
 
 pfas_value = st.number_input(
-    "Enter PFAS exposure",
+    "Enter PFAS exposure for prediction",
     value=float(X[feature_col].median())
 )
 
-if st.button("Predict methylation for this DMR"):
+if st.button("Predict methylation"):
     input_df = pd.DataFrame({feature_col: [pfas_value]})
-    prediction = model.predict(input_df)[0]
+    prediction = predictive_model.predict(input_df)[0]
     st.success(f"Predicted methylation difference: {prediction:.4f}")
 
-with st.expander("Predictive model details"):
-    st.write("Intercept:", model.intercept_)
-    st.write("Slope (PFAS effect):", model.coef_[0])
+with st.expander("Predictive Model Details"):
+    st.write("Intercept:", predictive_model.intercept_)
+    st.write("Slope (PFAS effect):", predictive_model.coef_[0])
     st.write("Training samples:", len(df_dmr))
 
 # -----------------------------
-# 5. Causal / perturbation approximation
+# 5. Causal / perturbation approximation section
 # -----------------------------
-st.subheader(f"Causal / perturbation approximation for {dmr_selected}")
+st.header("Causal / Perturbation Approximation")
 st.write("""
-We approximate the causal effect of PFAS on methylation using the slope of the predictive model.
-This allows simulating how perturbing methylation might affect downstream outcomes.
+This section **approximates a causal effect** of PFAS on methylation using the slope of the predictive model.
+It allows simulating how perturbing methylation might affect downstream outcomes.
 """)
 
-# Approximate causal effect using linear regression slope
-causal_effect = model.coef_[0]
-st.write("Estimated causal effect of PFAS on methylation (approx.):", causal_effect)
+# Use slope of predictive model as causal effect
+causal_effect = predictive_model.coef_[0]
+st.write("Approximate causal effect of PFAS on methylation:", causal_effect)
 
 # Simulate methylation perturbation
 st.subheader("Simulate methylation perturbation")
