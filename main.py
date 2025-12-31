@@ -1,17 +1,15 @@
 import streamlit as st
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-import dowhy
-from dowhy import CausalModel
 
-st.set_page_config(page_title="PFAS–Methylation Predictor + Causal Model")
+st.set_page_config(page_title="PFAS–Methylation Predictor + Causal Approximation")
 
 # -----------------------------
 # 1. Load dataset
 # -----------------------------
 df = pd.read_csv("pfas_dmr_data.csv")
 
-st.title("PFAS Exposure → DNA Methylation Predictor & Causal Model")
+st.title("PFAS Exposure → DNA Methylation Predictor & Causal Approximation")
 st.write("Dataset preview:")
 st.dataframe(df.head())
 
@@ -64,33 +62,20 @@ with st.expander("Predictive model details"):
     st.write("Training samples:", len(df_dmr))
 
 # -----------------------------
-# 5. Causal / perturbation model
+# 5. Causal / perturbation approximation
 # -----------------------------
-st.subheader(f"Causal / perturbation analysis for {dmr_selected}")
+st.subheader(f"Causal / perturbation approximation for {dmr_selected}")
 st.write("""
-Estimate the causal effect of PFAS on methylation using a simple linear backdoor adjustment. 
-This shows how changes in PFAS exposure might causally affect methylation at the selected DMR.
+We approximate the causal effect of PFAS on methylation using the slope of the predictive model.
+This allows simulating how perturbing methylation might affect downstream outcomes.
 """)
 
-# Simple causal model using DoWhy
-try:
-    causal_model = CausalModel(
-        data=df_dmr,
-        treatment=feature_col,
-        outcome=target_col,
-        common_causes=[]  # add confounders if available
-    )
+# Approximate causal effect using linear regression slope
+causal_effect = model.coef_[0]
+st.write("Estimated causal effect of PFAS on methylation (approx.):", causal_effect)
 
-    identified_estimand = causal_model.identify_effect()
-    estimate = causal_model.estimate_effect(identified_estimand, method_name="backdoor.linear_regression")
-
-    st.write("Estimated causal effect of PFAS on methylation:", estimate.value)
-
-    st.subheader("Simulate methylation perturbation")
-    perturb = st.slider("Change methylation (delta)", -0.5, 0.5, 0.0)
-    predicted_effect = perturb * estimate.value
-    st.write(f"Predicted change in outcome if methylation is perturbed: {predicted_effect:.4f}")
-
-except Exception as e:
-    st.error("Causal model could not be estimated. Make sure the data is sufficient.")
-    st.write(e)
+# Simulate methylation perturbation
+st.subheader("Simulate methylation perturbation")
+perturb = st.slider("Change methylation (delta)", -0.5, 0.5, 0.0)
+predicted_outcome = perturb * causal_effect
+st.write(f"Predicted change in outcome if methylation is perturbed: {predicted_outcome:.4f}")
