@@ -16,7 +16,7 @@ st.dataframe(df.head())
 # -----------------------------
 # 2. Define columns
 # -----------------------------
-dmr_col = "DMR_ID"
+dmr_col = "location"
 feature_col = "pfas_exposure"
 target_col = "meth.diff"
 
